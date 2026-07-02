@@ -6,6 +6,8 @@ It has two subcommands:
 - `annotate` — open the GUI and annotate a folder of tomograms
 - `link` — soft-link tomograms that match a saved annotation (e.g. all "Good" tomograms containing Mito)
 
+![TOMATO GUI](TOMATO_GUI.png)
+
 ---
 
 ## License and Copyright
