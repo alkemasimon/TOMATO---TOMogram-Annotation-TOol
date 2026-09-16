@@ -6,7 +6,7 @@
 #
 # Author: Simon J. Alkema with contributions from Euan W. Pyle, Higor Rosa and Anastasiia Babenko
 # EMBL Imaging Centre, Heidelberg, Germany - Mattei Lab
-# contact simon.alkema@embl.de for questions
+# contact alkemasimon@gmail.com for questions
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
