@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use TOMATO, please cite it as below."
+title: "TOMATO: TOMogram Annotation TOol"
+type: software
+version: 1.0.0
+date-released: 2026-09-XX
+license: GPL-2.0-or-later
+repository-code: "https://github.com/alkemasimon/TOMATO---TOMogram-Annotation-TOol"
+abstract: >-
+  TOMATO is a lightweight Python GUI for inventorying the contents of
+  cryo-ET tomograms. It records one row per tomogram with the structures
+  present, optional counts, a quality grade and a comment, and includes an
+  orthogonal XYZ viewer. A link command creates symlinks to tomograms
+  matching chosen annotations for downstream processing.
+keywords:
+  - cryo-electron tomography
+  - cryo-ET
+  - annotation
+  - tomogram
+  - GUI
+authors:
+  - family-names: Alkema
+    given-names: Simon J.
+    affiliation: "EMBL Heidelberg ; Utrecht University"
+    orcid: https://orcid.org/0009-0003-5615-8325
+- family-names: Babenko
+    given-names: Anastasiia  
+    affiliation: "EMBL Heidelberg"
+    orcid: https://orcid.org/0000-0001-9759-1369
+- family-names: Pyle
+    given-names: Euan
+    affiliation: "EMBL Heidelberg"
+    orcid: https://orcid.org/0000-0002-4633-4917
+  - family-names: Rosa
+    given-names: Higor
+    affiliation: "EMBL Heidelberg"
+    orcid: https://orcid.org/0000-0002-5743-4745
+  - family-names: Mattei
+    given-names: Simone
+    affiliation: "EMBL Heidelberg"
+    orcid: https://orcid.org/0000-0002-2005-8977
