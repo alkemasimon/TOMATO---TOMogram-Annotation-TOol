@@ -3,6 +3,7 @@ message: "If you use TOMATO, please cite it as below."
 title: "TOMATO: TOMogram Annotation TOol"
 type: software
 version: 1.0.0
+doi: 10.5281/zenodo.22808238
 date-released: 2026-09-17
 license: GPL-2.0-or-later
 repository-code: "https://github.com/alkemasimon/TOMATO---TOMogram-Annotation-TOol"
