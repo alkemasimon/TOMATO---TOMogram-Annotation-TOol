@@ -1,6 +1,6 @@
 # TOMATO — TOMogram Annotation TOol
 
-[![DOI](https://zenodo.org/badge/1286973264.svg)](https://doi.org/10.5281/zenodo.22808238)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22808238-blue)](https://doi.org/10.5281/zenodo.22808238)
 
 TOMATO (TOMogram Annotation TOol) is a lightweight Python GUI that inventories the contents of cryo-ET tomograms, with an in-GUI orthogonal XYZ viewer. It records one row per tomogram — which structures are present, optionally how many of each, an overall quality grade and a free-text comment — so you can work through a few hundred tomograms quickly and end up with a table you can filter and act on. A flag records that a tomogram *contains* mitochondria, not where they are. It loads .mrc files directly into an interactive viewer, autosaves as you go, supports turning any flag into a counter, and can soft-link tomograms matching any annotation for downstream processing. Synced zoom/pan and a drag-to-measure ruler are built in — see section 2.
 
