@@ -3,7 +3,7 @@ message: "If you use TOMATO, please cite it as below."
 title: "TOMATO: TOMogram Annotation TOol"
 type: software
 version: 1.0.0
-date-released: 2026-09-XX
+date-released: 2026-09-17
 license: GPL-2.0-or-later
 repository-code: "https://github.com/alkemasimon/TOMATO---TOMogram-Annotation-TOol"
 abstract: >-
@@ -21,13 +21,13 @@ keywords:
 authors:
   - family-names: Alkema
     given-names: Simon J.
-    affiliation: "EMBL Heidelberg ; Utrecht University"
+    affiliation: "EMBL Heidelberg; Utrecht University"
     orcid: https://orcid.org/0009-0003-5615-8325
-- family-names: Babenko
-    given-names: Anastasiia  
+  - family-names: Babenko
+    given-names: Anastasiia
     affiliation: "EMBL Heidelberg"
     orcid: https://orcid.org/0000-0001-9759-1369
-- family-names: Pyle
+  - family-names: Pyle
     given-names: Euan
     affiliation: "EMBL Heidelberg"
     orcid: https://orcid.org/0000-0002-4633-4917
