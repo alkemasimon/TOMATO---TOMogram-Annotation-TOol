@@ -116,6 +116,7 @@ import re
 import sys
 import threading
 from pathlib import Path
+
 try:
     import tkinter as tk
 except ImportError:
@@ -153,10 +154,10 @@ except ImportError:
 # Flag names, quality grades, colours and panel size limits.
 # The part you are most likely to want to change.
 # ══════════════════════════════════════════════════════════════════════════════
-BASE_FLAGS      = ["Mito", "ER", "Golgi"]
-GRADES          = ["FigureQuality", "Good", "Ok", "Bad"]
-DEFAULT_SUFFIX  = ".mrc"
-DEFAULT_OUTPUT  = "annotations.csv"
+BASE_FLAGS = ["Mito", "ER", "Golgi"]
+GRADES = ["FigureQuality", "Good", "Ok", "Bad"]
+DEFAULT_SUFFIX = ".mrc"
+DEFAULT_OUTPUT = "annotations.csv"
 # Bounds on the XY panel's longest side, in pixels — not on the window.
 # The quad view is fitted to whatever the other columns leave, then
 # clamped to this range (see _fit_scale).
@@ -166,8 +167,8 @@ DEFAULT_OUTPUT  = "annotations.csv"
 # an uncapped panel risks running out of memory on a big monitor. It also
 # sets how large the window opens, and is only the startup ceiling —
 # _apply_quad_resize raises it when the window is grown.
-MAX_XY          = 750
-MIN_XY          = 320
+MAX_XY = 750
+MIN_XY = 320
 # How many tomograms ahead of the current one are prefetched into memory.
 # At runtime this only ever steps DOWN (2 -> 1 -> 0), in reaction to a
 # MemoryError. There is deliberately no upfront free-memory check: with
@@ -175,7 +176,7 @@ MIN_XY          = 320
 # you take it, so reacting to the real failure is simpler and safer.
 PREFETCH_AHEAD_DEFAULT = 2
 # Padding around the columns (the tomato "skin" border), in pixels.
-WINDOW_PAD      = 24
+WINDOW_PAD = 24
 FLAG_COLORS = [
     ("#791F1F", "#F7C1C1"),
     ("#1B4F8A", "#CFE3F7"),
@@ -188,9 +189,9 @@ FLAG_COLORS = [
 ]
 GRADE_COLORS = {
     "FigureQuality": ("#3C3489", "#E2DFFB"),
-    "Good":          ("#0F6E56", "#CDEEE1"),
-    "Ok":            ("#854F0B", "#FAEEDA"),
-    "Bad":           ("#791F1F", "#F7C1C1"),
+    "Good": ("#0F6E56", "#CDEEE1"),
+    "Ok": ("#854F0B", "#FAEEDA"),
+    "Bad": ("#791F1F", "#F7C1C1"),
 }
 
 
@@ -399,7 +400,7 @@ def compute_contrast_window(data, n_sample_slices=5, std_factor=3.0):
     samples = [np.asarray(data[i]).astype(np.float32) for i in sample_indices]
     stacked = np.concatenate([s.ravel() for s in samples])
     mean = float(np.mean(stacked))
-    std  = float(np.std(stacked))
+    std = float(np.std(stacked))
     if std == 0:
         std = 1.0
     return mean - std_factor * std, mean + std_factor * std
@@ -426,8 +427,9 @@ def bin_downsample(arr, target_size):
     new_h = (h // bin_factor) * bin_factor
     new_w = (w // bin_factor) * bin_factor
     cropped = arr[:new_h, :new_w]
-    reshaped = cropped.reshape(new_h // bin_factor, bin_factor,
-                               new_w // bin_factor, bin_factor)
+    reshaped = cropped.reshape(
+        new_h // bin_factor, bin_factor, new_w // bin_factor, bin_factor
+    )
     return reshaped.mean(axis=(1, 3))
 
 
@@ -521,16 +523,19 @@ def shorten_display_names(filenames):
     # The "len(t) > lead + tail + 1" guard keeps at least one token, so a
     # set of identically-named files can never trim down to nothing.
     lead = 0
-    while (all(len(t) > lead + 1 for t in tokens)
-           and len({t[lead] for t in tokens}) == 1):
+    while (
+        all(len(t) > lead + 1 for t in tokens) and len({t[lead] for t in tokens}) == 1
+    ):
         lead += 1
     tail = 0
-    while (all(len(t) > lead + tail + 1 for t in tokens)
-           and len({t[-1 - tail] for t in tokens}) == 1):
+    while (
+        all(len(t) > lead + tail + 1 for t in tokens)
+        and len({t[-1 - tail] for t in tokens}) == 1
+    ):
         tail += 1
     short = {}
     for name, t in zip(names, tokens):
-        label = "".join(t[lead:len(t) - tail]).strip("_-.")
+        label = "".join(t[lead : len(t) - tail]).strip("_-.")
         short[name] = label or name
     if len(set(short.values())) != len(names):
         return {n: n for n in names}
@@ -579,8 +584,16 @@ class Annotator:
     # constructs every widget in the window).
     # ──────────────────────────────────────────────────────────────────────
 
-    def __init__(self, tomo_paths, flags, output_path, txt_path, initial_data,
-                 initial_flag_mode=None, pixel_size=None):
+    def __init__(
+        self,
+        tomo_paths,
+        flags,
+        output_path,
+        txt_path,
+        initial_data,
+        initial_flag_mode=None,
+        pixel_size=None,
+    ):
         """Set up all the state one annotation session needs, then open it.
 
         Two kinds of state live here, and mixing them up is the easiest
@@ -596,20 +609,20 @@ class Annotator:
         Ends by calling _build_gui, which does not return until the window
         is closed.
         """
-        self.tomo_paths  = tomo_paths
-        self.flags       = list(flags)
+        self.tomo_paths = tomo_paths
+        self.flags = list(flags)
         self.output_path = output_path
-        self.txt_path    = txt_path
+        self.txt_path = txt_path
         # Worked out once from the whole selection, since what is worth
         # showing depends on what the other filenames look like.
         self.display_names = shorten_display_names(p.name for p in tomo_paths)
-        self.idx         = 0
-        self.volume           = None
-        self.xy_cache         = []     # prerendered PhotoImages, one per Z slice
-        self.contrast_window  = (0.0, 1.0)
+        self.idx = 0
+        self.volume = None
+        self.xy_cache = []  # prerendered PhotoImages, one per Z slice
+        self.contrast_window = (0.0, 1.0)
         # Volume dimensions and crosshair position, all in voxel coords
         self.nz = self.ny = self.nx = 1
-        self.x = self.y = self.z    = 0
+        self.x = self.y = self.z = 0
         self.scale = 1.0
         # The panel pixel sizes (xy_w ... yz_h) are set in _build_gui, so
         # they need no placeholder here.
@@ -620,13 +633,17 @@ class Annotator:
         # in the canvas; zoom is a separate render scale that starts equal
         # to it, and x0/y0/z0 are the voxel coordinate at each canvas's
         # top-left corner. All reset to fit on load and on resize.
-        self.fit_zoom  = 1.0
-        self.zoom      = 1.0
-        self.MAX_ZOOM  = 40.0
+        self.fit_zoom = 1.0
+        self.zoom = 1.0
+        self.MAX_ZOOM = 40.0
         self.x0 = self.y0 = self.z0 = 0.0
-        self._drag_start      = None   # (panel, start_x, start_y) for left-button click-vs-ruler-drag
+        self._drag_start = (
+            None  # (panel, start_x, start_y) for left-button click-vs-ruler-drag
+        )
         self._drag_is_measuring = False
-        self._pan_start       = None   # (panel, start_x, start_y, x0, y0, z0) for right/middle-drag panning
+        self._pan_start = (
+            None  # (panel, start_x, start_y, x0, y0, z0) for right/middle-drag panning
+        )
 
         # Pixel size (Å/voxel), shown and editable in the readout corner.
         # _pixel_size_override stays None until the user types a value (or
@@ -635,10 +652,10 @@ class Annotator:
         # the whole batch, not just one file.
         self._pixel_size_override = pixel_size if pixel_size else None
         self.pixel_size = pixel_size if pixel_size else 1.0
-        self.data            = initial_data
-        self.current_state   = {flag: 0 for flag in self.flags}
+        self.data = initial_data
+        self.current_state = {flag: 0 for flag in self.flags}
         self.current_quality = ""
-        self._list_updating  = False   # guard against recursive listbox events
+        self._list_updating = False  # guard against recursive listbox events
         # Which flags are plain toggles and which are counters. This is a
         # per-session UI choice, NOT per-tomogram state: _load_current
         # resets the annotation fields on every navigation but deliberately
@@ -651,10 +668,12 @@ class Annotator:
         # Background prefetch of the next tomogram(s) while the current one
         # is being annotated, so "Next" is instant. See
         # PREFETCH_AHEAD_DEFAULT for how prefetch_ahead behaves at runtime.
-        self.prefetch_ahead    = PREFETCH_AHEAD_DEFAULT
-        self._prefetch_lock    = threading.Lock()
-        self._prefetch_cache   = {}    # {idx: {...}} — up to prefetch_ahead entries
-        self._prefetch_targets = set() # indices with a fetch thread currently in flight
+        self.prefetch_ahead = PREFETCH_AHEAD_DEFAULT
+        self._prefetch_lock = threading.Lock()
+        self._prefetch_cache = {}  # {idx: {...}} — up to prefetch_ahead entries
+        self._prefetch_targets = (
+            set()
+        )  # indices with a fetch thread currently in flight
         self._build_gui()
 
     # ── Small helpers used throughout the class ──
@@ -668,7 +687,7 @@ class Annotator:
 
     def _save_outputs(self):
         write_csv(self.output_path, self.flags, self.data)
-        write_txt(self.txt_path,    self.flags, self.data)
+        write_txt(self.txt_path, self.flags, self.data)
 
     # ── GUI construction ──
     def _build_gui(self):
@@ -702,14 +721,24 @@ class Annotator:
         # Control from its own key events too, as a backstop. bind_all, so
         # it doesn't matter which widget has focus.
         self._ctrl_held = False
-        self.root.bind_all("<KeyPress-Control_L>",   lambda e: setattr(self, "_ctrl_held", True))
-        self.root.bind_all("<KeyPress-Control_R>",   lambda e: setattr(self, "_ctrl_held", True))
-        self.root.bind_all("<KeyRelease-Control_L>", lambda e: setattr(self, "_ctrl_held", False))
-        self.root.bind_all("<KeyRelease-Control_R>", lambda e: setattr(self, "_ctrl_held", False))
+        self.root.bind_all(
+            "<KeyPress-Control_L>", lambda e: setattr(self, "_ctrl_held", True)
+        )
+        self.root.bind_all(
+            "<KeyPress-Control_R>", lambda e: setattr(self, "_ctrl_held", True)
+        )
+        self.root.bind_all(
+            "<KeyRelease-Control_L>", lambda e: setattr(self, "_ctrl_held", False)
+        )
+        self.root.bind_all(
+            "<KeyRelease-Control_R>", lambda e: setattr(self, "_ctrl_held", False)
+        )
         # If focus leaves the app while Ctrl is held (alt-tabbing), the
         # KeyRelease above never fires and _ctrl_held would stick on
         # forever, so clear it whenever the window loses focus.
-        self.root.bind_all("<FocusOut>", lambda e: setattr(self, "_ctrl_held", False), add="+")
+        self.root.bind_all(
+            "<FocusOut>", lambda e: setattr(self, "_ctrl_held", False), add="+"
+        )
         self.screen_w = self.root.winfo_screenwidth()
         self.screen_h = self.root.winfo_screenheight()
 
@@ -725,14 +754,14 @@ class Annotator:
         self.max_xy = MAX_XY
         self.quad_w_budget = self.max_xy
         self.quad_h_budget = self.max_xy
-        self.list_height   = 24
+        self.list_height = 24
         # Height of the scrollable flag list; refined in
         # _update_flag_area_budget once the widgets can be measured.
-        self.flag_area_h   = max(200, self.screen_h - 420)
+        self.flag_area_h = max(200, self.screen_h - 420)
         # Usable space for the columns; set by _measure_budgets once the
         # widgets exist. None means "not measured yet".
-        self.avail_h       = None
-        self.avail_w       = None
+        self.avail_h = None
+        self.avail_w = None
         # Measuring before a volume is loaded is slightly optimistic (fonts,
         # borders and label text all settle later), so _calibrate_fit folds
         # any error into these after the first real load — otherwise the
@@ -740,11 +769,11 @@ class Annotator:
         # off the bottom.
         self.quad_h_correction = 0
         self.quad_w_correction = 0
-        self._calibrated       = False
+        self._calibrated = False
         self.xy_w = self.xy_h = self.min_xy
         self.xz_w = self.xz_h = self.min_xy
         self.yz_w = self.yz_h = self.min_xy
-        BORDER_RED  = "#8B1E1E"
+        BORDER_RED = "#8B1E1E"
         INTERIOR_RED = "#F4E2DE"
         self.root.configure(bg=BORDER_RED)
 
@@ -755,33 +784,67 @@ class Annotator:
         nav_frame = tk.Frame(self.root, bg="#F4E2DE")
         nav_frame.pack(side="bottom", fill="x", padx=6, pady=6)
         self.nav_frame_bottom = nav_frame
-        self.prev_btn = tk.Button(nav_frame, text="← Previous",
-                  font=("Helvetica", 12), width=12,
-                  fg="#2C2C2A", bg="#F1EFE8",
-                  relief="flat", bd=0, cursor="hand2",
-                  command=self._go_previous)
+        self.prev_btn = tk.Button(
+            nav_frame,
+            text="← Previous",
+            font=("Helvetica", 12),
+            width=12,
+            fg="#2C2C2A",
+            bg="#F1EFE8",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=self._go_previous,
+        )
         self.prev_btn.pack(side="left")
-        tk.Button(nav_frame, text="Quit",
-                  font=("Helvetica", 11), fg="#888780", bg="#F4E2DE",
-                  relief="flat", bd=0, cursor="hand2",
-                  command=self._on_quit).pack(side="left", padx=20)
-        self.next_btn = tk.Button(nav_frame, text="Next →",
-                  font=("Helvetica", 12, "bold"), width=12,
-                  fg="#FAFAF8", bg="#2C2C2A",
-                  relief="flat", bd=0, cursor="hand2",
-                  command=self._go_next)
+        tk.Button(
+            nav_frame,
+            text="Quit",
+            font=("Helvetica", 11),
+            fg="#888780",
+            bg="#F4E2DE",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=self._on_quit,
+        ).pack(side="left", padx=20)
+        self.next_btn = tk.Button(
+            nav_frame,
+            text="Next →",
+            font=("Helvetica", 12, "bold"),
+            width=12,
+            fg="#FAFAF8",
+            bg="#2C2C2A",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=self._go_next,
+        )
         self.next_btn.pack(side="right")
         # Z slider fills the gap between Quit and Next.
         slider_box = tk.Frame(nav_frame, bg="#F4E2DE")
         slider_box.pack(side="left", fill="x", expand=True, padx=16)
         self.slice_var = tk.StringVar()
-        tk.Label(slider_box, textvariable=self.slice_var,
-                 font=("Helvetica", 10), bg="#F4E2DE", fg="#888780",
-                 width=16, anchor="e").pack(side="left", padx=(0, 8))
-        self.slider = tk.Scale(slider_box, from_=0, to=1, orient="horizontal",
-                               showvalue=False,
-                               bg="#F4E2DE", troughcolor="#F1EFE8",
-                               highlightthickness=0, command=self._on_slider)
+        tk.Label(
+            slider_box,
+            textvariable=self.slice_var,
+            font=("Helvetica", 10),
+            bg="#F4E2DE",
+            fg="#888780",
+            width=16,
+            anchor="e",
+        ).pack(side="left", padx=(0, 8))
+        self.slider = tk.Scale(
+            slider_box,
+            from_=0,
+            to=1,
+            orient="horizontal",
+            showvalue=False,
+            bg="#F4E2DE",
+            troughcolor="#F1EFE8",
+            highlightthickness=0,
+            command=self._on_slider,
+        )
         self.slider.pack(side="left", fill="x", expand=True)
 
         # ── STEP 4 — The main three-column frame ──
@@ -818,13 +881,23 @@ class Annotator:
         # later. Used throughout this method for every label/entry whose
         # text changes after creation (progress_var, name_var, pos_var...).
         self.progress_var = tk.StringVar()
-        tk.Label(header, textvariable=self.progress_var,
-                 font=("Helvetica", 11), bg="#F4E2DE",
-                 fg="#888780", anchor="w").pack(side="left", padx=(0, 10))
+        tk.Label(
+            header,
+            textvariable=self.progress_var,
+            font=("Helvetica", 11),
+            bg="#F4E2DE",
+            fg="#888780",
+            anchor="w",
+        ).pack(side="left", padx=(0, 10))
         self.name_var = tk.StringVar()
-        tk.Label(header, textvariable=self.name_var,
-                 font=("Helvetica", 14, "bold"),
-                 bg="#F4E2DE", fg="#2C2C2A", anchor="w").pack(side="left")
+        tk.Label(
+            header,
+            textvariable=self.name_var,
+            font=("Helvetica", 14, "bold"),
+            bg="#F4E2DE",
+            fg="#2C2C2A",
+            anchor="w",
+        ).pack(side="left")
         # 2x2 quad view:
         #   XZ (top-left)      | position readout (top-right)
         #   XY (bottom-left, main) | YZ (bottom-right)
@@ -835,63 +908,110 @@ class Annotator:
         # above _on_quad_configure.
         quad.pack(fill="both", expand=True)
         self.quad_frame = quad
-        self.canvas_xz = tk.Canvas(quad, width=self.xz_w, height=self.xz_h,
-                                   bg="black", highlightthickness=1,
-                                   highlightbackground="#8B1E1E")
+        self.canvas_xz = tk.Canvas(
+            quad,
+            width=self.xz_w,
+            height=self.xz_h,
+            bg="black",
+            highlightthickness=1,
+            highlightbackground="#8B1E1E",
+        )
         self.canvas_xz.grid(row=0, column=0, sticky="sw")
-        self.nav_frame = tk.Frame(quad, bg="#2C2C2A",
-                                  width=self.yz_w, height=self.xz_h)
+        self.nav_frame = tk.Frame(quad, bg="#2C2C2A", width=self.yz_w, height=self.xz_h)
         self.nav_frame.grid(row=0, column=1, sticky="nw", padx=(2, 0))
         self.nav_frame.grid_propagate(False)
         self.pos_var = tk.StringVar()
-        tk.Label(self.nav_frame, textvariable=self.pos_var,
-                 font=("Helvetica", 9), bg="#2C2C2A", fg="#E8E6E0",
-                 justify="left", anchor="nw").pack(fill="x", padx=4, pady=(4, 6))
+        tk.Label(
+            self.nav_frame,
+            textvariable=self.pos_var,
+            font=("Helvetica", 9),
+            bg="#2C2C2A",
+            fg="#E8E6E0",
+            justify="left",
+            anchor="nw",
+        ).pack(fill="x", padx=4, pady=(4, 6))
         # Å/px: the pixel size currently in use, from the MRC header or
         # from the user (see _pixel_size_override in __init__).
         px_row = tk.Frame(self.nav_frame, bg="#2C2C2A")
         px_row.pack(fill="x", padx=4, pady=(0, 6))
-        tk.Label(px_row, text="Å/px:", font=("Helvetica", 9),
-                 bg="#2C2C2A", fg="#E8E6E0").pack(side="left")
+        tk.Label(
+            px_row, text="Å/px:", font=("Helvetica", 9), bg="#2C2C2A", fg="#E8E6E0"
+        ).pack(side="left")
         self.pixel_size_var = tk.StringVar(value=f"{self.pixel_size:.4f}")
-        self.pixel_size_entry = tk.Entry(px_row, textvariable=self.pixel_size_var,
-                 font=("Helvetica", 9), width=8, bg="#F1EFE8", fg="#2C2C2A",
-                 relief="flat", bd=0, justify="right")
+        self.pixel_size_entry = tk.Entry(
+            px_row,
+            textvariable=self.pixel_size_var,
+            font=("Helvetica", 9),
+            width=8,
+            bg="#F1EFE8",
+            fg="#2C2C2A",
+            relief="flat",
+            bd=0,
+            justify="right",
+        )
         self.pixel_size_entry.pack(side="left", padx=(4, 0))
         self.pixel_size_entry.bind("<Return>", self._on_pixel_size_entry)
         self.pixel_size_entry.bind("<FocusOut>", self._on_pixel_size_entry)
         # Ruler readout: a drag on any panel shows its length here.
         # Display-only — nothing is saved, and the next drag replaces it.
         self.measured_var = tk.StringVar(value="Measured size: —")
-        tk.Label(self.nav_frame, textvariable=self.measured_var,
-                 font=("Helvetica", 9), bg="#2C2C2A", fg="#F5E642",
-                 justify="left", anchor="nw", wraplength=max(80, self.yz_w - 8)
-                 ).pack(fill="x", padx=4, pady=(0, 4))
-        self.canvas_xy = tk.Canvas(quad, width=self.xy_w, height=self.xy_h,
-                                   bg="black", highlightthickness=1,
-                                   highlightbackground="#0F6E56")
+        tk.Label(
+            self.nav_frame,
+            textvariable=self.measured_var,
+            font=("Helvetica", 9),
+            bg="#2C2C2A",
+            fg="#F5E642",
+            justify="left",
+            anchor="nw",
+            wraplength=max(80, self.yz_w - 8),
+        ).pack(fill="x", padx=4, pady=(0, 4))
+        self.canvas_xy = tk.Canvas(
+            quad,
+            width=self.xy_w,
+            height=self.xy_h,
+            bg="black",
+            highlightthickness=1,
+            highlightbackground="#0F6E56",
+        )
         self.canvas_xy.grid(row=1, column=0, sticky="nw", pady=(2, 0))
-        self.canvas_yz = tk.Canvas(quad, width=self.yz_w, height=self.yz_h,
-                                   bg="black", highlightthickness=1,
-                                   highlightbackground="#1B4F8A")
+        self.canvas_yz = tk.Canvas(
+            quad,
+            width=self.yz_w,
+            height=self.yz_h,
+            bg="black",
+            highlightthickness=1,
+            highlightbackground="#1B4F8A",
+        )
         self.canvas_yz.grid(row=1, column=1, sticky="nw", padx=(2, 0), pady=(2, 0))
         # Mouse map, the same on all three panels: left click moves the
         # crosshair, a left drag past DRAG_THRESHOLD draws the ruler
         # instead, right or middle drag pans, the wheel steps the axis the
         # panel doesn't show, and Ctrl+wheel zooms.
-        panel_canvases = {"xy": self.canvas_xy, "xz": self.canvas_xz, "yz": self.canvas_yz}
-        step_fns       = {"xy": self._step_z,   "xz": self._step_y,   "yz": self._step_x}
+        panel_canvases = {
+            "xy": self.canvas_xy,
+            "xz": self.canvas_xz,
+            "yz": self.canvas_yz,
+        }
+        step_fns = {"xy": self._step_z, "xz": self._step_y, "yz": self._step_x}
         for panel, canvas in panel_canvases.items():
-            canvas.bind("<ButtonPress-1>",   lambda e, p=panel: self._on_panel_press(p, e))
-            canvas.bind("<B1-Motion>",       lambda e, p=panel: self._on_panel_motion(p, e))
-            canvas.bind("<ButtonRelease-1>", lambda e, p=panel: self._on_panel_release(p, e))
-            wheel_handler = (lambda e, p=panel, fn=step_fns[panel]: self._panel_wheel(e, p, fn))
+            canvas.bind(
+                "<ButtonPress-1>", lambda e, p=panel: self._on_panel_press(p, e)
+            )
+            canvas.bind("<B1-Motion>", lambda e, p=panel: self._on_panel_motion(p, e))
+            canvas.bind(
+                "<ButtonRelease-1>", lambda e, p=panel: self._on_panel_release(p, e)
+            )
+            wheel_handler = lambda e, p=panel, fn=step_fns[panel]: self._panel_wheel(
+                e, p, fn
+            )
             canvas.bind("<MouseWheel>", wheel_handler)
-            canvas.bind("<Button-4>",   wheel_handler)
-            canvas.bind("<Button-5>",   wheel_handler)
+            canvas.bind("<Button-4>", wheel_handler)
+            canvas.bind("<Button-5>", wheel_handler)
             for b in (2, 3):
-                canvas.bind(f"<ButtonPress-{b}>",   lambda e, p=panel: self._on_pan_press(p, e))
-                canvas.bind(f"<B{b}-Motion>",       self._on_pan_drag)
+                canvas.bind(
+                    f"<ButtonPress-{b}>", lambda e, p=panel: self._on_pan_press(p, e)
+                )
+                canvas.bind(f"<B{b}-Motion>", self._on_pan_drag)
                 canvas.bind(f"<ButtonRelease-{b}>", self._on_pan_release)
         # The Z slider and its readout live in the bottom navigation row,
         # not in this column — that hands their height to the quad view.
@@ -902,16 +1022,21 @@ class Annotator:
         right = tk.Frame(main, bg="#F4E2DE")
         right.grid(row=0, column=1, sticky="n", padx=(24, 0))
         self.right_col = right
-        tk.Label(right, text="Quality",
-                 font=("Helvetica", 12, "bold"), bg="#F4E2DE",
-                 fg="#2C2C2A", anchor="w").pack(fill="x", pady=(0, 6))
+        tk.Label(
+            right,
+            text="Quality",
+            font=("Helvetica", 12, "bold"),
+            bg="#F4E2DE",
+            fg="#2C2C2A",
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
         # Segmented control: all four grade buttons in one bordered frame,
         # separated by hairlines.
         GRADE_LABELS = {
             "FigureQuality": "Figure\nQuality",
-            "Good":          "Good",
-            "Ok":            "Ok",
-            "Bad":           "Bad",
+            "Good": "Good",
+            "Ok": "Ok",
+            "Bad": "Bad",
         }
         SEGMENT_BORDER = "#2C2C2A"
         segment_outer = tk.Frame(right, bg=SEGMENT_BORDER)
@@ -926,39 +1051,58 @@ class Annotator:
             # segment_outer's width (set by _match_quality_width_to_flags)
             # instead of each button sizing itself from its own text.
             segment_inner.columnconfigure(i, weight=1)
-            b = tk.Button(segment_inner, text=GRADE_LABELS[grade],
-                          font=("Helvetica", 12, "bold"),
-                          fg=fg, bg="#F1EFE8",
-                          activebackground=bg_on, activeforeground=fg,
-                          relief="flat", bd=0, cursor="hand2",
-                          height=2,
-                          command=lambda g=grade: self._set_quality(g))
-            b.grid(row=0, column=i, sticky="nsew",
-                   padx=(0 if i == 0 else 1, 0))
+            b = tk.Button(
+                segment_inner,
+                text=GRADE_LABELS[grade],
+                font=("Helvetica", 12, "bold"),
+                fg=fg,
+                bg="#F1EFE8",
+                activebackground=bg_on,
+                activeforeground=fg,
+                relief="flat",
+                bd=0,
+                cursor="hand2",
+                height=2,
+                command=lambda g=grade: self._set_quality(g),
+            )
+            b.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 1, 0))
             self.grade_buttons[grade] = (b, fg, bg_on)
-        tk.Label(right, text="Annotation",
-                 font=("Helvetica", 12, "bold"), bg="#F4E2DE",
-                 fg="#2C2C2A", anchor="w").pack(fill="x", pady=(0, 6))
-        tk.Label(right, text="Click a flag to toggle it. Click its − / + "
-                             "to turn it into a counter, or × simple on a "
-                             "counter to turn it back — both stick for the "
-                             "rest of the session.",
-                 font=("Helvetica", 9), bg="#F4E2DE", fg="#888780",
-                 anchor="w", justify="left",
-                 wraplength=220).pack(fill="x", pady=(0, 6))
+        tk.Label(
+            right,
+            text="Annotation",
+            font=("Helvetica", 12, "bold"),
+            bg="#F4E2DE",
+            fg="#2C2C2A",
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
+        tk.Label(
+            right,
+            text="Click a flag to toggle it. Click its − / + "
+            "to turn it into a counter, or × simple on a "
+            "counter to turn it back — both stick for the "
+            "rest of the session.",
+            font=("Helvetica", 9),
+            bg="#F4E2DE",
+            fg="#888780",
+            anchor="w",
+            justify="left",
+            wraplength=220,
+        ).pack(fill="x", pady=(0, 6))
         # Flags live in a fixed-height scrollable list: flag_outer never
         # changes size once laid out, so adding a flag can never resize the
         # annotation column or the window. A scrollbar appears once there
         # are more flags than fit in flag_area_h.
-        flag_outer = tk.Frame(right, bg="#F4E2DE", highlightthickness=1,
-                              highlightbackground="#C9C6BC")
+        flag_outer = tk.Frame(
+            right, bg="#F4E2DE", highlightthickness=1, highlightbackground="#C9C6BC"
+        )
         flag_outer.pack(fill="x")
         self.flag_outer = flag_outer
-        self.flag_canvas = tk.Canvas(flag_outer, bg="#F4E2DE",
-                                     highlightthickness=0,
-                                     height=self.flag_area_h)
-        flag_scroll = tk.Scrollbar(flag_outer, orient="vertical",
-                                   command=self.flag_canvas.yview)
+        self.flag_canvas = tk.Canvas(
+            flag_outer, bg="#F4E2DE", highlightthickness=0, height=self.flag_area_h
+        )
+        flag_scroll = tk.Scrollbar(
+            flag_outer, orient="vertical", command=self.flag_canvas.yview
+        )
         self.flag_canvas.configure(yscrollcommand=flag_scroll.set)
         flag_scroll.pack(side="right", fill="y")
         self.flag_canvas.pack(side="left", fill="both", expand=True)
@@ -969,13 +1113,18 @@ class Annotator:
         # how tall buttons_frame currently is, growing as flags are added.
         self.buttons_frame = tk.Frame(self.flag_canvas, bg="#F4E2DE")
         self._flag_window = self.flag_canvas.create_window(
-            (0, 0), window=self.buttons_frame, anchor="nw")
+            (0, 0), window=self.buttons_frame, anchor="nw"
+        )
         self.buttons_frame.bind(
             "<Configure>",
-            lambda e: self.flag_canvas.configure(scrollregion=self.flag_canvas.bbox("all")))
+            lambda e: self.flag_canvas.configure(
+                scrollregion=self.flag_canvas.bbox("all")
+            ),
+        )
         self.flag_canvas.bind(
             "<Configure>",
-            lambda e: self.flag_canvas.itemconfigure(self._flag_window, width=e.width))
+            lambda e: self.flag_canvas.itemconfigure(self._flag_window, width=e.width),
+        )
         self._bind_flag_wheel(self.flag_canvas)
         self.flag_buttons = {}
         for flag in self.flags:
@@ -983,36 +1132,73 @@ class Annotator:
         # The flag block's real width is known now, so size the quality
         # control to match it. Only needed once — see the docstring.
         self._match_quality_width_to_flags()
-        tk.Label(right, text="Add flag",
-                 font=("Helvetica", 12, "bold"), bg="#F4E2DE",
-                 fg="#2C2C2A", anchor="w").pack(fill="x", pady=(14, 4))
+        tk.Label(
+            right,
+            text="Add flag",
+            font=("Helvetica", 12, "bold"),
+            bg="#F4E2DE",
+            fg="#2C2C2A",
+            anchor="w",
+        ).pack(fill="x", pady=(14, 4))
         add_frame = tk.Frame(right, bg="#F4E2DE")
         add_frame.pack(fill="x")
-        self.add_entry = tk.Entry(add_frame, font=("Helvetica", 11),
-                                  bg="#F1EFE8", fg="#2C2C2A",
-                                  relief="flat", bd=6, width=14,
-                                  insertbackground="#2C2C2A")
+        self.add_entry = tk.Entry(
+            add_frame,
+            font=("Helvetica", 11),
+            bg="#F1EFE8",
+            fg="#2C2C2A",
+            relief="flat",
+            bd=6,
+            width=14,
+            insertbackground="#2C2C2A",
+        )
         self.add_entry.pack(side="left")
         self.add_entry.bind("<Return>", lambda e: self._add_flag_from_entry())
-        tk.Button(add_frame, text="+", font=("Helvetica", 12, "bold"),
-                  fg="#FAFAF8", bg="#2C2C2A",
-                  relief="flat", bd=0, cursor="hand2",
-                  padx=10, pady=4,
-                  command=self._add_flag_from_entry).pack(side="left", padx=(6, 0))
-        tk.Label(right, text="Comment",
-                 font=("Helvetica", 12, "bold"), bg="#F4E2DE",
-                 fg="#2C2C2A", anchor="w").pack(fill="x", pady=(16, 4))
-        self.comment_box = tk.Text(right, width=24, height=6,
-                                   font=("Helvetica", 11),
-                                   bg="#F1EFE8", fg="#2C2C2A",
-                                   relief="flat", bd=6, wrap="word",
-                                   insertbackground="#2C2C2A")
+        tk.Button(
+            add_frame,
+            text="+",
+            font=("Helvetica", 12, "bold"),
+            fg="#FAFAF8",
+            bg="#2C2C2A",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=self._add_flag_from_entry,
+        ).pack(side="left", padx=(6, 0))
+        tk.Label(
+            right,
+            text="Comment",
+            font=("Helvetica", 12, "bold"),
+            bg="#F4E2DE",
+            fg="#2C2C2A",
+            anchor="w",
+        ).pack(fill="x", pady=(16, 4))
+        self.comment_box = tk.Text(
+            right,
+            width=24,
+            height=6,
+            font=("Helvetica", 11),
+            bg="#F1EFE8",
+            fg="#2C2C2A",
+            relief="flat",
+            bd=6,
+            wrap="word",
+            insertbackground="#2C2C2A",
+        )
         self.comment_box.pack(fill="x")
         self.status_var = tk.StringVar()
-        tk.Label(right, textvariable=self.status_var,
-                 font=("Helvetica", 10), bg="#F4E2DE",
-                 fg="#888780", anchor="w", justify="left",
-                 wraplength=220).pack(fill="x", pady=(10, 4))
+        tk.Label(
+            right,
+            textvariable=self.status_var,
+            font=("Helvetica", 10),
+            bg="#F4E2DE",
+            fg="#888780",
+            anchor="w",
+            justify="left",
+            wraplength=220,
+        ).pack(fill="x", pady=(10, 4))
 
         # ── STEP 7 — Column 2: tomogram list ──
         # Every tomogram found in --input, as a clickable list for
@@ -1020,9 +1206,14 @@ class Annotator:
         list_col = tk.Frame(main, bg="#F4E2DE")
         list_col.grid(row=0, column=2, sticky="ns", padx=(24, 0))
         self.list_col = list_col
-        tk.Label(list_col, text="Tomograms",
-                 font=("Helvetica", 12, "bold"), bg="#F4E2DE",
-                 fg="#2C2C2A", anchor="w").pack(fill="x", pady=(0, 6))
+        tk.Label(
+            list_col,
+            text="Tomograms",
+            font=("Helvetica", 12, "bold"),
+            bg="#F4E2DE",
+            fg="#2C2C2A",
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
         list_frame = tk.Frame(list_col, bg="#F4E2DE")
         list_frame.pack(fill="both", expand=True)
         scrollbar = tk.Scrollbar(list_frame, orient="vertical")
@@ -1031,9 +1222,12 @@ class Annotator:
             list_frame,
             yscrollcommand=scrollbar.set,
             font=("Helvetica", 11),
-            bg="#F1EFE8", fg="#2C2C2A",
-            selectbackground="#2C2C2A", selectforeground="#FAFAF8",
-            relief="flat", bd=0,
+            bg="#F1EFE8",
+            fg="#2C2C2A",
+            selectbackground="#2C2C2A",
+            selectforeground="#FAFAF8",
+            relief="flat",
+            bd=0,
             highlightthickness=0,
             activestyle="none",
             width=40,
@@ -1070,14 +1264,15 @@ class Annotator:
         self._resize_job = None
         # Baseline for the change detection in _on_quad_configure, read from
         # the widget itself rather than assumed.
-        self._last_quad_size = (self.quad_frame.winfo_width(),
-                                self.quad_frame.winfo_height())
+        self._last_quad_size = (
+            self.quad_frame.winfo_width(),
+            self.quad_frame.winfo_height(),
+        )
         # Bound last, once layout has settled: <Configure> also fires
         # several times while the window is being built and positioned, and
         # those early events don't reflect the final fit.
         self.quad_frame.bind("<Configure>", self._on_quad_configure)
         self.root.mainloop()
-
 
     # ──────────────────────────────────────────────────────────────────────
     # PART 2 — Window Sizing & Layout Fitting
@@ -1196,14 +1391,18 @@ class Annotator:
         if self.avail_h is None:
             return
         self.root.update_idletasks()
-        left_overhead_h = max(0, self.left_col.winfo_reqheight()
-                                 - self.quad_frame.winfo_reqheight())
-        other_cols_w = max(0, self.main_frame.winfo_reqwidth()
-                              - self.quad_frame.winfo_reqwidth())
-        self.quad_w_budget = max(self.min_xy,
-                                 self.avail_w - other_cols_w - self.quad_w_correction)
-        self.quad_h_budget = max(self.min_xy,
-                                 self.avail_h - left_overhead_h - self.quad_h_correction)
+        left_overhead_h = max(
+            0, self.left_col.winfo_reqheight() - self.quad_frame.winfo_reqheight()
+        )
+        other_cols_w = max(
+            0, self.main_frame.winfo_reqwidth() - self.quad_frame.winfo_reqwidth()
+        )
+        self.quad_w_budget = max(
+            self.min_xy, self.avail_w - other_cols_w - self.quad_w_correction
+        )
+        self.quad_h_budget = max(
+            self.min_xy, self.avail_h - left_overhead_h - self.quad_h_correction
+        )
 
     def _calibrate_fit(self):
         """Check the laid-out window really fits, and correct it if not.
@@ -1232,11 +1431,14 @@ class Annotator:
 
     def _apply_panel_geometry(self):
         """Push the current scale out to the three canvases and slider."""
-        (self.xy_w, self.xy_h, self.xz_w, self.xz_h,
-         self.yz_w, self.yz_h) = panel_dims(self.nx, self.ny, self.nz, self.scale)
-        for canvas, w, h in ((self.canvas_xy, self.xy_w, self.xy_h),
-                             (self.canvas_xz, self.xz_w, self.xz_h),
-                             (self.canvas_yz, self.yz_w, self.yz_h)):
+        self.xy_w, self.xy_h, self.xz_w, self.xz_h, self.yz_w, self.yz_h = panel_dims(
+            self.nx, self.ny, self.nz, self.scale
+        )
+        for canvas, w, h in (
+            (self.canvas_xy, self.xy_w, self.xy_h),
+            (self.canvas_xz, self.xz_w, self.xz_h),
+            (self.canvas_yz, self.yz_w, self.yz_h),
+        ):
             canvas.config(width=w, height=h)
         self.nav_frame.config(width=self.yz_w, height=self.xz_h)
         # The slider lives in the nav row and stretches to fill it, so only
@@ -1261,8 +1463,9 @@ class Annotator:
         # the old canvas size is no longer valid — reset to fit instead.
         self._reset_zoom_to_fit()
         self._apply_panel_geometry()
-        self.xy_cache = prerender_z_stack(self.volume, self.contrast_window,
-                                          self.xy_w, self.xy_h)
+        self.xy_cache = prerender_z_stack(
+            self.volume, self.contrast_window, self.xy_w, self.xy_h
+        )
         self._render_xy()
         self._render_xz()
         self._render_yz()
@@ -1324,11 +1527,15 @@ class Annotator:
         if self.avail_h is None:
             return
         self.root.update_idletasks()
-        children  = self.right_col.winfo_children()
-        padding_h = max(0, self.right_col.winfo_reqheight()
-                           - sum(c.winfo_reqheight() for c in children))
-        non_flag_h = padding_h + sum(c.winfo_reqheight() for c in children
-                                     if c is not self.flag_outer)
+        children = self.right_col.winfo_children()
+        padding_h = max(
+            0,
+            self.right_col.winfo_reqheight()
+            - sum(c.winfo_reqheight() for c in children),
+        )
+        non_flag_h = padding_h + sum(
+            c.winfo_reqheight() for c in children if c is not self.flag_outer
+        )
         self.flag_area_h = max(180, self.avail_h - non_flag_h)
         self.flag_canvas.config(height=self.flag_area_h)
 
@@ -1342,10 +1549,10 @@ class Annotator:
         if not self.xy_cache or self.avail_h is None:
             return
         self.root.update_idletasks()
-        quad_h = self.xy_h + self.xz_h + 4   # padding and borders between the rows
+        quad_h = self.xy_h + self.xz_h + 4  # padding and borders between the rows
         new_avail_h = max(200, min(self.avail_h, quad_h))
         if new_avail_h >= self.avail_h - 1:
-            return   # quad is already at least as tall as the fitted columns
+            return  # quad is already at least as tall as the fitted columns
         self.avail_h = new_avail_h
         self._update_flag_area_budget()
         self._fit_annotation_column(self.avail_h)
@@ -1364,8 +1571,8 @@ class Annotator:
         pushed past the bottom of the screen.
         """
         self.root.update_idletasks()
-        list_h  = self.tomo_list.winfo_reqheight()
-        row_px  = max(12, list_h // max(1, self.list_height))
+        list_h = self.tomo_list.winfo_reqheight()
+        row_px = max(12, list_h // max(1, self.list_height))
         # Everything in the list column that isn't the listbox itself.
         col_overhead = max(0, self.list_col.winfo_reqheight() - list_h)
         self.list_height = int(max(6, min(32, (avail_h - col_overhead) // row_px)))
@@ -1379,13 +1586,14 @@ class Annotator:
         column is cheaper than shrinking the image further.
         """
         self.root.update_idletasks()
-        other_w    = max(0, self.main_frame.winfo_reqwidth()
-                             - self.quad_frame.winfo_reqwidth())
-        min_quad_w = self.min_xy + 80          # XY at minimum + a thin YZ strip
+        other_w = max(
+            0, self.main_frame.winfo_reqwidth() - self.quad_frame.winfo_reqwidth()
+        )
+        min_quad_w = self.min_xy + 80  # XY at minimum + a thin YZ strip
         over = (other_w + min_quad_w) - avail_w
         if over <= 0:
             return
-        chars   = int(self.tomo_list.cget("width"))
+        chars = int(self.tomo_list.cget("width"))
         char_px = max(6, self.tomo_list.winfo_reqwidth() // max(1, chars))
         self.tomo_list.config(width=max(14, chars - -(-over // char_px)))
 
@@ -1407,7 +1615,6 @@ class Annotator:
         s = max(s, self.min_xy / longest)
         return s
 
-
     # ──────────────────────────────────────────────────────────────────────
     # PART 3 — Flag & Quality Controls
     # Builds and updates the organelle flag buttons and the quality
@@ -1424,19 +1631,31 @@ class Annotator:
         # (counter mode). See _rebuild_flag_control.
         frame = tk.Frame(self.buttons_frame, bg="#F1EFE8")
         frame.columnconfigure(0, weight=1)
-        main_btn = tk.Button(frame, text=flag, width=14,
-                             font=("Helvetica", 13, "bold"),
-                             fg=fg, bg="#F1EFE8",
-                             activebackground=bg_on,
-                             relief="flat", bd=0, cursor="hand2",
-                             anchor="w", padx=12, pady=8,
-                             command=lambda fl=flag: self._flag_primary_click(fl))
+        main_btn = tk.Button(
+            frame,
+            text=flag,
+            width=14,
+            font=("Helvetica", 13, "bold"),
+            fg=fg,
+            bg="#F1EFE8",
+            activebackground=bg_on,
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            anchor="w",
+            padx=12,
+            pady=8,
+            command=lambda fl=flag: self._flag_primary_click(fl),
+        )
         main_btn.grid(row=0, column=0, sticky="nsew")
         control = tk.Frame(frame, bg="#F1EFE8")
         control.grid(row=0, column=1, sticky="ne", padx=(4, 6), pady=(4, 0))
         self.flag_buttons[flag] = {
-            "frame": frame, "main_btn": main_btn, "control": control,
-            "fg": fg, "bg_on": bg_on,
+            "frame": frame,
+            "main_btn": main_btn,
+            "control": control,
+            "fg": fg,
+            "bg_on": bg_on,
         }
         self._rebuild_flag_control(flag)
         # Always one roomy column, top to bottom; the scrollable
@@ -1457,43 +1676,90 @@ class Annotator:
         info.pop("count_label", None)
         fg = info["fg"]
         if self.flag_mode.get(flag, "simple") == "simple":
-            mini = tk.Frame(control, bg="#F1EFE8", highlightthickness=1,
-                            highlightbackground="#C9C6BC")
+            mini = tk.Frame(
+                control,
+                bg="#F1EFE8",
+                highlightthickness=1,
+                highlightbackground="#C9C6BC",
+            )
             mini.pack()
-            tk.Button(mini, text="−", font=("Helvetica", 8), fg="#888780",
-                      bg="#F1EFE8", relief="flat", bd=0, width=2, cursor="hand2",
-                      command=lambda fl=flag: self._enable_counter_mode(fl, -1)
-                      ).pack(side="left")
-            tk.Button(mini, text="+", font=("Helvetica", 8), fg="#888780",
-                      bg="#F1EFE8", relief="flat", bd=0, width=2, cursor="hand2",
-                      command=lambda fl=flag: self._enable_counter_mode(fl, 1)
-                      ).pack(side="left")
+            tk.Button(
+                mini,
+                text="−",
+                font=("Helvetica", 8),
+                fg="#888780",
+                bg="#F1EFE8",
+                relief="flat",
+                bd=0,
+                width=2,
+                cursor="hand2",
+                command=lambda fl=flag: self._enable_counter_mode(fl, -1),
+            ).pack(side="left")
+            tk.Button(
+                mini,
+                text="+",
+                font=("Helvetica", 8),
+                fg="#888780",
+                bg="#F1EFE8",
+                relief="flat",
+                bd=0,
+                width=2,
+                cursor="hand2",
+                command=lambda fl=flag: self._enable_counter_mode(fl, 1),
+            ).pack(side="left")
         else:
             # The revert control is deliberately small and sits above the
             # stepper, so demoting a flag is an on-purpose click rather
             # than something that happens while adjusting its count.
             revert_row = tk.Frame(control, bg="#F1EFE8")
             revert_row.pack(fill="x")
-            tk.Button(revert_row, text="× simple", font=("Helvetica", 7),
-                      fg="#888780", bg="#F1EFE8", relief="flat", bd=0,
-                      cursor="hand2",
-                      command=lambda fl=flag: self._disable_counter_mode(fl)
-                      ).pack(side="right")
+            tk.Button(
+                revert_row,
+                text="× simple",
+                font=("Helvetica", 7),
+                fg="#888780",
+                bg="#F1EFE8",
+                relief="flat",
+                bd=0,
+                cursor="hand2",
+                command=lambda fl=flag: self._disable_counter_mode(fl),
+            ).pack(side="right")
             stepper_row = tk.Frame(control, bg="#F1EFE8")
             stepper_row.pack()
-            tk.Button(stepper_row, text="−", font=("Helvetica", 11, "bold"),
-                      fg=fg, bg="#F1EFE8", relief="flat", bd=0, width=2, cursor="hand2",
-                      command=lambda fl=flag: self._step_count(fl, -1)
-                      ).pack(side="left")
-            count_label = tk.Label(stepper_row, text=str(self.current_state.get(flag, 0)),
-                                   font=("Helvetica", 12, "bold"),
-                                   fg=fg, bg="#F1EFE8", width=2)
+            tk.Button(
+                stepper_row,
+                text="−",
+                font=("Helvetica", 11, "bold"),
+                fg=fg,
+                bg="#F1EFE8",
+                relief="flat",
+                bd=0,
+                width=2,
+                cursor="hand2",
+                command=lambda fl=flag: self._step_count(fl, -1),
+            ).pack(side="left")
+            count_label = tk.Label(
+                stepper_row,
+                text=str(self.current_state.get(flag, 0)),
+                font=("Helvetica", 12, "bold"),
+                fg=fg,
+                bg="#F1EFE8",
+                width=2,
+            )
             count_label.pack(side="left")
             info["count_label"] = count_label
-            tk.Button(stepper_row, text="+", font=("Helvetica", 11, "bold"),
-                      fg=fg, bg="#F1EFE8", relief="flat", bd=0, width=2, cursor="hand2",
-                      command=lambda fl=flag: self._step_count(fl, 1)
-                      ).pack(side="left")
+            tk.Button(
+                stepper_row,
+                text="+",
+                font=("Helvetica", 11, "bold"),
+                fg=fg,
+                bg="#F1EFE8",
+                relief="flat",
+                bd=0,
+                width=2,
+                cursor="hand2",
+                command=lambda fl=flag: self._step_count(fl, 1),
+            ).pack(side="left")
 
     def _switch_flag_mode(self, flag, new_mode):
         """Flip one flag's mode and redraw its control.
@@ -1636,15 +1902,15 @@ class Annotator:
         target_w = self.flag_outer.winfo_reqwidth()
         if target_w <= 1:
             return
-        self.segment_outer.config(width=target_w,
-                                  height=self.segment_outer.winfo_reqheight())
+        self.segment_outer.config(
+            width=target_w, height=self.segment_outer.winfo_reqheight()
+        )
         # By default a Tk frame auto-sizes to fit whatever's packed inside
         # it — pack_propagate(False) turns that off, "locking" segment_outer
         # at the width/height just set, so it stays matched to the flag
         # block below even though its own contents (the grade buttons)
         # would otherwise size it differently.
         self.segment_outer.pack_propagate(False)
-
 
     # ──────────────────────────────────────────────────────────────────────
     # PART 4 — Crosshair Position & Panel Rendering
@@ -1713,8 +1979,14 @@ class Annotator:
             self.photo_xy = self.xy_cache[self.z]
         else:
             self.photo_xy = self._render_zoomed(
-                self.volume[self.z], self.x0, self.nx, self.xy_w,
-                self.y0, self.ny, self.xy_h)
+                self.volume[self.z],
+                self.x0,
+                self.nx,
+                self.xy_w,
+                self.y0,
+                self.ny,
+                self.xy_h,
+            )
         self.canvas_xy.delete("all")
         self.canvas_xy.create_image(0, 0, anchor="nw", image=self.photo_xy)
         self._draw_xy_crosshair()
@@ -1724,14 +1996,19 @@ class Annotator:
     def _draw_xy_crosshair(self):
         self.canvas_xy.delete("crosshair")
         px, py = (self.x - self.x0) * self.zoom, (self.y - self.y0) * self.zoom
-        self.canvas_xy.create_line(px, 0, px, self.xy_h, fill="#F5E642", tags="crosshair")
-        self.canvas_xy.create_line(0, py, self.xy_w, py, fill="#F5E642", tags="crosshair")
+        self.canvas_xy.create_line(
+            px, 0, px, self.xy_h, fill="#F5E642", tags="crosshair"
+        )
+        self.canvas_xy.create_line(
+            0, py, self.xy_w, py, fill="#F5E642", tags="crosshair"
+        )
 
     # ── XZ panel (top-left): Y-slice, rendered on demand ──
     def _render_xz(self):
-        plane = self.volume[:, self.y, :]     # (Z, X) — see AXIS ORDER in _load_current
+        plane = self.volume[:, self.y, :]  # (Z, X) — see AXIS ORDER in _load_current
         self.photo_xz = self._render_zoomed(
-            plane, self.x0, self.nx, self.xz_w, self.z0, self.nz, self.xz_h)
+            plane, self.x0, self.nx, self.xz_w, self.z0, self.nz, self.xz_h
+        )
         self.canvas_xz.delete("all")
         self.canvas_xz.create_image(0, 0, anchor="nw", image=self.photo_xz)
         self._draw_xz_crosshair()
@@ -1739,14 +2016,19 @@ class Annotator:
     def _draw_xz_crosshair(self):
         self.canvas_xz.delete("crosshair")
         px, pz = (self.x - self.x0) * self.zoom, (self.z - self.z0) * self.zoom
-        self.canvas_xz.create_line(px, 0, px, self.xz_h, fill="#F5E642", tags="crosshair")
-        self.canvas_xz.create_line(0, pz, self.xz_w, pz, fill="#F5E642", tags="crosshair")
+        self.canvas_xz.create_line(
+            px, 0, px, self.xz_h, fill="#F5E642", tags="crosshair"
+        )
+        self.canvas_xz.create_line(
+            0, pz, self.xz_w, pz, fill="#F5E642", tags="crosshair"
+        )
 
     # ── YZ panel (bottom-right): X-slice, rendered on demand ──
     def _render_yz(self):
-        plane = self.volume[:, :, self.x].T   # (Y, Z) — see AXIS ORDER in _load_current
+        plane = self.volume[:, :, self.x].T  # (Y, Z) — see AXIS ORDER in _load_current
         self.photo_yz = self._render_zoomed(
-            plane, self.z0, self.nz, self.yz_w, self.y0, self.ny, self.yz_h)
+            plane, self.z0, self.nz, self.yz_w, self.y0, self.ny, self.yz_h
+        )
         self.canvas_yz.delete("all")
         self.canvas_yz.create_image(0, 0, anchor="nw", image=self.photo_yz)
         self._draw_yz_crosshair()
@@ -1754,14 +2036,17 @@ class Annotator:
     def _draw_yz_crosshair(self):
         self.canvas_yz.delete("crosshair")
         pz, py = (self.z - self.z0) * self.zoom, (self.y - self.y0) * self.zoom
-        self.canvas_yz.create_line(pz, 0, pz, self.yz_h, fill="#F5E642", tags="crosshair")
-        self.canvas_yz.create_line(0, py, self.yz_w, py, fill="#F5E642", tags="crosshair")
+        self.canvas_yz.create_line(
+            pz, 0, pz, self.yz_h, fill="#F5E642", tags="crosshair"
+        )
+        self.canvas_yz.create_line(
+            0, py, self.yz_w, py, fill="#F5E642", tags="crosshair"
+        )
 
     def _update_pos_label(self):
         self.pos_var.set(
             f"X {self.x:>4} / {self.nx}\nY {self.y:>4} / {self.ny}\nZ {self.z:>4} / {self.nz}"
         )
-
 
     # ──────────────────────────────────────────────────────────────────────
     # PART 5 — Pixel Size (Å/voxel)
@@ -1774,7 +2059,9 @@ class Annotator:
         The user's override if one has been given, otherwise the MRC
         header's value. See _pixel_size_override in __init__.
         """
-        self.pixel_size = self._pixel_size_override if self._pixel_size_override else header_px
+        self.pixel_size = (
+            self._pixel_size_override if self._pixel_size_override else header_px
+        )
         self.pixel_size_var.set(f"{self.pixel_size:.4f}")
 
     def _on_pixel_size_entry(self, _event=None):
@@ -1795,7 +2082,9 @@ class Annotator:
         self.pixel_size = val
         self._pixel_size_override = val
         self.pixel_size_var.set(f"{val:.4f}")
-        self.status_var.set(f"Å/px set to {val:.4f} — applied to this and future tomograms.")
+        self.status_var.set(
+            f"Å/px set to {val:.4f} — applied to this and future tomograms."
+        )
 
     def _commit_pixel_size_entry(self):
         """Apply whatever is currently typed in the Å/px box.
@@ -1818,8 +2107,9 @@ class Annotator:
         if val != self._pixel_size_override:
             self._pixel_size_override = val
             self.pixel_size = val
-            self.status_var.set(f"Å/px set to {val:.4f} — applied to this and future tomograms.")
-
+            self.status_var.set(
+                f"Å/px set to {val:.4f} — applied to this and future tomograms."
+            )
 
     # ──────────────────────────────────────────────────────────────────────
     # PART 6 — Mouse & Wheel Input, Zoom / Pan
@@ -1857,7 +2147,7 @@ class Annotator:
         one key (Shift, Ctrl, Alt...). 0x0004 is the bit for Control, so
         `event.state & 0x0004` is nonzero exactly when Control was down.
         """
-        if (event.state & 0x0004) or self._ctrl_held:    # Control held
+        if (event.state & 0x0004) or self._ctrl_held:  # Control held
             self._on_panel_zoom_wheel(panel, event)
         else:
             up = getattr(event, "num", None) == 4 or getattr(event, "delta", 0) > 0
@@ -1886,7 +2176,7 @@ class Annotator:
         out against the old canvas size means nothing at the new one.
         """
         self.fit_zoom = self.scale
-        self.zoom     = self.fit_zoom
+        self.zoom = self.fit_zoom
         self.x0 = self.y0 = self.z0 = 0.0
         self.MAX_ZOOM = max(self.fit_zoom * 15.0, self.fit_zoom + 20.0)
 
@@ -1896,11 +2186,13 @@ class Annotator:
         Without this, dragging past an edge would scroll empty black space
         into view and let the crosshair coordinates drift outside the data.
         """
+
         def clamp_axis(off, n, canvas_len):
             if self.zoom <= 0:
                 return 0.0
             visible = canvas_len / self.zoom
             return self._clamp(off, 0.0, max(0.0, n - visible))
+
         self.x0 = clamp_axis(self.x0, self.nx, self.xy_w)
         self.y0 = clamp_axis(self.y0, self.ny, self.xy_h)
         self.z0 = clamp_axis(self.z0, self.nz, self.xz_h)
@@ -1963,15 +2255,20 @@ class Annotator:
         src_h = max(1, min(n_b, int(math.ceil(canvas_h / self.zoom))))
         start_a = int(self._clamp(round(off_a), 0, max(0, n_a - src_w)))
         start_b = int(self._clamp(round(off_b), 0, max(0, n_b - src_h)))
-        sub = plane2d[start_b:start_b + src_h, start_a:start_a + src_w]
+        sub = plane2d[start_b : start_b + src_h, start_a : start_a + src_w]
         img = array_to_image(sub, self.contrast_window, canvas_w, canvas_h)
         return ImageTk.PhotoImage(img)
 
     def _on_panel_zoom_wheel(self, panel, event):
         if not self.xy_cache:
             return
-        factor = 1.25 if (getattr(event, "num", None) == 4 or getattr(event, "delta", 0) > 0) else 1 / 1.25
+        factor = (
+            1.25
+            if (getattr(event, "num", None) == 4 or getattr(event, "delta", 0) > 0)
+            else 1 / 1.25
+        )
         self._zoom_at(panel, factor, event.x, event.y)
+
     # The axis each panel does NOT display: the one _zoom_at has to
     # recentre, since zooming via that panel never touches it directly.
     _THIRD_AXIS = {"xy": "z", "xz": "y", "yz": "x"}
@@ -2035,7 +2332,9 @@ class Annotator:
     # ── Click handlers ──
     # A click jumps the crosshair to that point; a left-button drag draws
     # the ruler instead (see _on_panel_motion).
-    DRAG_THRESHOLD = 4   # canvas pixels below which a press+release is a click, not a drag
+    DRAG_THRESHOLD = (
+        4  # canvas pixels below which a press+release is a click, not a drag
+    )
 
     def _panel_canvas(self, panel):
         return {"xy": self.canvas_xy, "xz": self.canvas_xz, "yz": self.canvas_yz}[panel]
@@ -2045,7 +2344,7 @@ class Annotator:
             return self.x0 + cx / self.zoom, self.y0 + cy / self.zoom
         if panel == "xz":
             return self.x0 + cx / self.zoom, self.z0 + cy / self.zoom
-        return self.z0 + cx / self.zoom, self.y0 + cy / self.zoom   # yz
+        return self.z0 + cx / self.zoom, self.y0 + cy / self.zoom  # yz
 
     def _on_panel_press(self, panel, event):
         if not self.xy_cache:
@@ -2059,16 +2358,23 @@ class Annotator:
             return
         _, sx, sy = self._drag_start
         if not self._drag_is_measuring:
-            if abs(event.x - sx) < self.DRAG_THRESHOLD and abs(event.y - sy) < self.DRAG_THRESHOLD:
+            if (
+                abs(event.x - sx) < self.DRAG_THRESHOLD
+                and abs(event.y - sy) < self.DRAG_THRESHOLD
+            ):
                 return
             self._drag_is_measuring = True
         canvas = self._panel_canvas(panel)
         for c in (self.canvas_xy, self.canvas_xz, self.canvas_yz):
             c.delete("measure")
-        canvas.create_line(sx, sy, event.x, event.y, fill="#6EC62F", width=4, tags="measure")
-        dist_px  = math.hypot(event.x - sx, event.y - sy)
+        canvas.create_line(
+            sx, sy, event.x, event.y, fill="#6EC62F", width=4, tags="measure"
+        )
+        dist_px = math.hypot(event.x - sx, event.y - sy)
         dist_ang = (dist_px / self.zoom) * self.pixel_size
-        self.measured_var.set(f"Measured size:\n{dist_ang:,.1f} Å  ({dist_ang / 10:,.2f} nm)")
+        self.measured_var.set(
+            f"Measured size:\n{dist_ang:,.1f} Å  ({dist_ang / 10:,.2f} nm)"
+        )
 
     def _on_panel_release(self, panel, event):
         drag = self._drag_start
@@ -2078,7 +2384,7 @@ class Annotator:
         if drag is None or drag[0] != panel:
             return
         if was_measuring:
-            return   # line + "Measured size" readout stay as-is; nothing else happens
+            return  # line + "Measured size" readout stay as-is; nothing else happens
         if not self.xy_cache:
             return
         a, b = self._panel_to_voxel(panel, event.x, event.y)
@@ -2088,7 +2394,6 @@ class Annotator:
             self._update_position(x=a, z=b)
         else:
             self._update_position(z=a, y=b)
-
 
     # ──────────────────────────────────────────────────────────────────────
     # PART 7 — Tomogram Navigation & Loading
@@ -2108,7 +2413,7 @@ class Annotator:
         entry = dict(self.current_state)
         entry["quality"] = self.current_quality
         entry["comment"] = self.comment_box.get("1.0", "end").strip()
-        self.data[name]  = entry
+        self.data[name] = entry
         self._save_outputs()
 
     # ── Tomogram list interaction ──
@@ -2143,7 +2448,7 @@ class Annotator:
     # ── Loading a tomogram ──
     def _close_volume(self):
         """Drop the loaded volume and clear everything that depended on it."""
-        self.volume   = None
+        self.volume = None
         self.xy_cache = []
         for canvas in (self.canvas_xy, self.canvas_xz, self.canvas_yz):
             canvas.delete("all")
@@ -2175,12 +2480,12 @@ class Annotator:
         """
         total = len(self.tomo_paths)
         self.progress_var.set(f"{self.idx + 1} / {total}")
-        path  = self.tomo_paths[self.idx]
+        path = self.tomo_paths[self.idx]
         # Two names, deliberately: the shortened one is what the user reads,
         # the filename is what the annotation is filed under.
         self.name_var.set(self._tomo_name(path))
         saved = self.data.get(path.name, {})
-        self.current_state   = {flag: saved.get(flag, 0) for flag in self.flags}
+        self.current_state = {flag: saved.get(flag, 0) for flag in self.flags}
         self.current_quality = saved.get("quality", "")
         self._refresh_buttons()
         self._refresh_quality_buttons()
@@ -2197,7 +2502,11 @@ class Annotator:
         cached = self._take_prefetched(self.idx)
         if cached is not None:
             self.volume = cached["volume"]
-            self.nz, self.ny, self.nx = cached["nz"], cached["ny"], cached["nx"]   # see AXIS ORDER below
+            self.nz, self.ny, self.nx = (
+                cached["nz"],
+                cached["ny"],
+                cached["nx"],
+            )  # see AXIS ORDER below
             self.scale = cached["scale"]
             self.contrast_window = cached["contrast_window"]
             self._apply_panel_geometry()
@@ -2260,11 +2569,17 @@ class Annotator:
                 self.contrast_window = compute_contrast_window(self.volume)
 
                 def report_progress(done, total):
-                    self.status_var.set(f"Processing tomogram… {done} / {total} Z-slices")
+                    self.status_var.set(
+                        f"Processing tomogram… {done} / {total} Z-slices"
+                    )
                     self.root.update()
+
                 self.xy_cache = prerender_z_stack(
-                    self.volume, self.contrast_window, self.xy_w, self.xy_h,
-                    progress_callback=report_progress
+                    self.volume,
+                    self.contrast_window,
+                    self.xy_w,
+                    self.xy_h,
+                    progress_callback=report_progress,
                 )
             except MemoryError:
                 # Rendering is the memory peak: raw volume plus every
@@ -2307,7 +2622,6 @@ class Annotator:
         self._close_volume()
         self.root.destroy()
 
-
     # ──────────────────────────────────────────────────────────────────────
     # PART 8 — Background Prefetch
     # Loads upcoming tomograms on worker threads while the current one
@@ -2340,9 +2654,13 @@ class Annotator:
                 if idx not in keep:
                     del self._prefetch_cache[idx]
         if self.prefetch_ahead == 0:
-            self.status_var.set("Low memory: prefetch disabled — loading tomograms synchronously.")
+            self.status_var.set(
+                "Low memory: prefetch disabled — loading tomograms synchronously."
+            )
         else:
-            self.status_var.set(f"Low memory: now prefetching only {self.prefetch_ahead} tomogram(s) ahead.")
+            self.status_var.set(
+                f"Low memory: now prefetching only {self.prefetch_ahead} tomogram(s) ahead."
+            )
 
     def _start_prefetch(self, base_idx):
         """Start background loads for the next few tomograms.
@@ -2356,12 +2674,16 @@ class Annotator:
             if idx < 0 or idx >= len(self.tomo_paths):
                 continue
             with self._prefetch_lock:
-                already_have = idx in self._prefetch_targets or idx in self._prefetch_cache
+                already_have = (
+                    idx in self._prefetch_targets or idx in self._prefetch_cache
+                )
             if already_have:
                 continue
             with self._prefetch_lock:
                 self._prefetch_targets.add(idx)
-            threading.Thread(target=self._prefetch_worker, args=(idx,), daemon=True).start()
+            threading.Thread(
+                target=self._prefetch_worker, args=(idx,), daemon=True
+            ).start()
 
     def _prefetch_worker(self, idx):
         path = self.tomo_paths[idx]
@@ -2369,18 +2691,34 @@ class Annotator:
             if not path.exists():
                 return
             volume, header_px = load_volume(path)
-            nz, ny, nx = volume.shape          # see AXIS ORDER in _load_current
+            nz, ny, nx = volume.shape  # see AXIS ORDER in _load_current
             scale = self._fit_scale(nx, ny, nz)
             xy_w, xy_h, xz_w, xz_h, yz_w, yz_h = panel_dims(nx, ny, nz, scale)
             contrast_window = compute_contrast_window(volume)
-            pil_slices = [array_to_image(volume[z], contrast_window, xy_w, xy_h)
-                          for z in range(nz)]
-            result = dict(volume=volume, contrast_window=contrast_window,
-                          pil_slices=pil_slices, nz=nz, ny=ny, nx=nx, scale=scale,
-                          xy_w=xy_w, xy_h=xy_h, xz_w=xz_w, xz_h=xz_h,
-                          yz_w=yz_w, yz_h=yz_h, pixel_size=header_px)
+            pil_slices = [
+                array_to_image(volume[z], contrast_window, xy_w, xy_h)
+                for z in range(nz)
+            ]
+            result = dict(
+                volume=volume,
+                contrast_window=contrast_window,
+                pil_slices=pil_slices,
+                nz=nz,
+                ny=ny,
+                nx=nx,
+                scale=scale,
+                xy_w=xy_w,
+                xy_h=xy_h,
+                xz_w=xz_w,
+                xz_h=xz_h,
+                yz_w=yz_w,
+                yz_h=yz_h,
+                pixel_size=header_px,
+            )
             with self._prefetch_lock:
-                self._prefetch_cache[idx] = result   # keep at most prefetch_ahead entries
+                self._prefetch_cache[idx] = (
+                    result  # keep at most prefetch_ahead entries
+                )
         except MemoryError:
             # Discard any partial result for this index, and step the
             # prefetch depth down on the main thread — Tk state isn't safe
@@ -2431,7 +2769,7 @@ def soft_link_object(csv_path, object_names, input_dir):
     works: the file is found by looking for a single filename starting with
     that name.
     """
-    csv_path  = Path(csv_path)
+    csv_path = Path(csv_path)
     input_dir = Path(input_dir)
     if not csv_path.exists():
         print(f"CSV not found: {csv_path}")
@@ -2475,7 +2813,7 @@ def soft_link_object(csv_path, object_names, input_dir):
         csv_error(csv_path, "the file is not text — a binary file named .csv?")
     except csv.Error as e:
         csv_error(csv_path, f"the file is not valid CSV ({e})")
-    label   = "_".join(object_names)
+    label = "_".join(object_names)
     out_dir = Path(f"{label}_tomograms")
     if not matching:
         print(f"No tomograms found matching all of: {', '.join(object_names)}")
@@ -2532,39 +2870,61 @@ def _main_annotate():
         description="Open the annotation GUI — load tomograms one by one, toggle flags, grade quality.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--input", required=True,
-                        help="Path to folder containing tomogram .mrc files (REQUIRED)")
-    parser.add_argument("--flags", nargs="+", default=[],
-                        help="Extra organelle button labels, added alongside the "
-                             f"always-present base set {BASE_FLAGS}")
-    parser.add_argument("--output", default=None,
-                        help=f"Output path for the annotation CSV; a matching .txt "
-                             f"compact summary is written alongside with the same stem. "
-                             f"Defaults to --previous_csv when that is given, so "
-                             f"annotation continues in the same file; otherwise to "
-                             f"{DEFAULT_OUTPUT} (→ annotations.csv + annotations.txt)")
-    parser.add_argument("--suffix", default=DEFAULT_SUFFIX,
-                        help=f"Only annotate files ending with this "
-                             f"(default: {DEFAULT_SUFFIX})")
-    parser.add_argument("--prefix", default="",
-                        help="Only annotate files starting with this, e.g. "
-                             "--prefix TS_ . Combines with --suffix, so the two "
-                             "together select <prefix>*<suffix>. Optional — by "
-                             "default every file matching --suffix is opened. "
-                             "Neither flag changes what is saved: the CSV always "
-                             "records the full filename.")
-    parser.add_argument("--previous_csv", default=None,
-                        help="Continue a specific TOMATO CSV instead of the default "
-                             "one: its flag columns and annotations are loaded, and "
-                             "annotation is written back to it. Add --output to write "
-                             "somewhere else and leave the original untouched.")
-    parser.add_argument("--pixel_size", type=float, default=None,
-                        help="Å/voxel to use instead of trusting each MRC header's "
-                             "voxel size (which is sometimes wrong or gets copied "
-                             "incorrectly between programs). Optional — by default "
-                             "the header value is used and shown/editable in the "
-                             "GUI's position readout. Only used for the ruler tool's "
-                             "size output; navigation is unaffected either way.")
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Path to folder containing tomogram .mrc files (REQUIRED)",
+    )
+    parser.add_argument(
+        "--flags",
+        nargs="+",
+        default=[],
+        help="Extra organelle button labels, added alongside the "
+        f"always-present base set {BASE_FLAGS}",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help=f"Output path for the annotation CSV; a matching .txt "
+        f"compact summary is written alongside with the same stem. "
+        f"Defaults to --previous_csv when that is given, so "
+        f"annotation continues in the same file; otherwise to "
+        f"{DEFAULT_OUTPUT} (→ annotations.csv + annotations.txt)",
+    )
+    parser.add_argument(
+        "--suffix",
+        default=DEFAULT_SUFFIX,
+        help=f"Only annotate files ending with this " f"(default: {DEFAULT_SUFFIX})",
+    )
+    parser.add_argument(
+        "--prefix",
+        default="",
+        help="Only annotate files starting with this, e.g. "
+        "--prefix TS_ . Combines with --suffix, so the two "
+        "together select <prefix>*<suffix>. Optional — by "
+        "default every file matching --suffix is opened. "
+        "Neither flag changes what is saved: the CSV always "
+        "records the full filename.",
+    )
+    parser.add_argument(
+        "--previous_csv",
+        default=None,
+        help="Continue a specific TOMATO CSV instead of the default "
+        "one: its flag columns and annotations are loaded, and "
+        "annotation is written back to it. Add --output to write "
+        "somewhere else and leave the original untouched.",
+    )
+    parser.add_argument(
+        "--pixel_size",
+        type=float,
+        default=None,
+        help="Å/voxel to use instead of trusting each MRC header's "
+        "voxel size (which is sometimes wrong or gets copied "
+        "incorrectly between programs). Optional — by default "
+        "the header value is used and shown/editable in the "
+        "GUI's position readout. Only used for the ruler tool's "
+        "size output; navigation is unaffected either way.",
+    )
     args = parser.parse_args(sys.argv[2:])
     tomo_dir = Path(args.input)
     if not tomo_dir.exists():
@@ -2593,7 +2953,7 @@ def _main_annotate():
         output_path = Path(args.previous_csv)
     else:
         output_path = Path(DEFAULT_OUTPUT)
-    txt_path    = output_path.with_suffix(".txt")
+    txt_path = output_path.with_suffix(".txt")
     # Only when no --previous_csv was given: that flag already said which
     # file to continue, and loading the output on top of it would mix two
     # sources into one run.
@@ -2606,7 +2966,7 @@ def _main_annotate():
             initial_data.update(resume_data)
             print(f"Auto-resuming  : {output_path} ({len(resume_data)} tomograms)")
     pattern = f"{args.prefix}*{args.suffix}"
-    tomo_paths = sorted(tomo_dir.glob(pattern))
+    tomo_paths = sorted(tomo_dir.rglob(pattern))
     if not tomo_paths:
         print(f"No files matching {pattern} found in {tomo_dir}")
         sys.exit(1)
@@ -2617,8 +2977,11 @@ def _main_annotate():
     full_names = {p.name for p in tomo_paths}
     stripped_to_full = {}
     for p in tomo_paths:
-        stem = (p.name[: -len(args.suffix)]
-                if args.suffix and p.name.endswith(args.suffix) else p.name)
+        stem = (
+            p.name[: -len(args.suffix)]
+            if args.suffix and p.name.endswith(args.suffix)
+            else p.name
+        )
         stripped_to_full[stem] = p.name
     renamed = 0
     for old_name in list(initial_data):
@@ -2626,8 +2989,10 @@ def _main_annotate():
             initial_data[stripped_to_full[old_name]] = initial_data.pop(old_name)
             renamed += 1
     if renamed:
-        print(f"Updated names  : {renamed} row(s) from an older TOMATO version "
-              f"now stored under their full filename")
+        print(
+            f"Updated names  : {renamed} row(s) from an older TOMATO version "
+            f"now stored under their full filename"
+        )
     print(f"Tomo directory : {tomo_dir}")
     print(f"Selecting      : {pattern}")
     print(f"Flags          : {flags}")
@@ -2643,8 +3008,15 @@ def _main_annotate():
             if entry.get(flag, 0) > 1:
                 initial_flag_mode[flag] = "counter"
     print()
-    Annotator(tomo_paths, flags, output_path, txt_path, initial_data,
-              initial_flag_mode=initial_flag_mode, pixel_size=args.pixel_size)
+    Annotator(
+        tomo_paths,
+        flags,
+        output_path,
+        txt_path,
+        initial_data,
+        initial_flag_mode=initial_flag_mode,
+        pixel_size=args.pixel_size,
+    )
 
 
 def _main_link():
@@ -2652,25 +3024,33 @@ def _main_link():
         prog="TOMATO.py link",
         description="Soft-link tomograms that match an object or quality grade from a TOMATO CSV.",
     )
-    parser.add_argument("--csv", required=True,
-                        help="TOMATO CSV to read annotations from (REQUIRED)")
-    parser.add_argument("--object", required=True, nargs="+",
-                        help="One or more object names / quality grades to filter by (AND logic). "
-                             "E.g. --object Good Mito  → tomograms rated Good that also contain Mito. "
-                             "Output directory is named after all values joined with '_'.")
-    parser.add_argument("--input", required=True,
-                        help="Directory containing the tomogram .mrc files (REQUIRED)")
+    parser.add_argument(
+        "--csv", required=True, help="TOMATO CSV to read annotations from (REQUIRED)"
+    )
+    parser.add_argument(
+        "--object",
+        required=True,
+        nargs="+",
+        help="One or more object names / quality grades to filter by (AND logic). "
+        "E.g. --object Good Mito  → tomograms rated Good that also contain Mito. "
+        "Output directory is named after all values joined with '_'.",
+    )
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Directory containing the tomogram .mrc files (REQUIRED)",
+    )
     args = parser.parse_args(sys.argv[2:])
     soft_link_object(
-        csv_path     = args.csv,
-        object_names = args.object,
-        input_dir    = args.input,
+        csv_path=args.csv,
+        object_names=args.object,
+        input_dir=args.input,
     )
 
 
 SUBCOMMANDS = {
     "annotate": (_main_annotate, "Open the annotation GUI"),
-    "link":     (_main_link,     "Soft-link tomograms matching an object or quality grade"),
+    "link": (_main_link, "Soft-link tomograms matching an object or quality grade"),
 }
 
 
